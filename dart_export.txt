@@ -17,188 +17,188 @@ Dateiinhalte:
 
 // ==== lib\screens\about_screen.dart ====
 
- 1: // ==== lib\screens\about_screen.dart ====
- 2: 
- 3: import 'package:flutter/material.dart';
- 4: import 'package:package_info_plus/package_info_plus.dart';
- 5: 
- 6: import '../generated/build_info.dart'; // Import der BuildInfo
- 7: 
- 8: class AboutScreen extends StatefulWidget {
- 9:   const AboutScreen({super.key});
-10: 
-11:   @override
-12:   State<AboutScreen> createState() => _AboutScreenState();
-13: }
-14: 
-15: class _AboutScreenState extends State<AboutScreen> {
-16:   PackageInfo? _packageInfo;
-17: 
-18:   @override
-19:   void initState() {
-20:     super.initState();
-21:     _loadPackageInfo();
-22:   }
-23: 
-24:   Future<void> _loadPackageInfo() async {
-25:     final info = await PackageInfo.fromPlatform();
-26:     setState(() {
-27:       _packageInfo = info;
-28:     });
-29:   }
-30: 
-31:   Widget _buildSectionTitle(BuildContext context, String title) {
-32:     return Padding(
-33:       padding: const EdgeInsets.only(
-34:         top: 24.0,
-35:         bottom: 8.0,
-36:         left: 16.0,
-37:         right: 16.0,
-38:       ),
-39:       child: Text(
-40:         title,
-41:         style: Theme.of(
-42:           context,
-43:         ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-44:       ),
-45:     );
-46:   }
-47: 
-48:   @override
-49:   Widget build(BuildContext context) {
-50:     return Scaffold(
-51:       appBar: AppBar(
-52:         title: const Text('Über die App'),
-53:         backgroundColor: Colors.blueGrey,
-54:         foregroundColor: Colors.white,
-55:       ),
-56:       body: _packageInfo == null
-57:           ? const Center(child: CircularProgressIndicator())
-58:           : ListView(
-59:               children: [
-60:                 _buildSectionTitle(context, 'Über die App'),
-61:                 Card(
-62:                   margin: const EdgeInsets.symmetric(
-63:                     horizontal: 16.0,
-64:                     vertical: 8.0,
-65:                   ),
-66:                   child: Column(
-67:                     children: [
-68:                       ListTile(
-69:                         leading: const Icon(Icons.info_outline),
-70:                         title: const Text('App-Version'),
-71:                         subtitle: Text(
-72:                           '${_packageInfo!.version}+${_packageInfo!.buildNumber}',
-73:                         ),
-74:                       ),
-75:                       ListTile(
-76:                         leading: const Icon(Icons.build_circle_outlined),
-77:                         title: const Text('Build-Zeitpunkt'),
-78:                         subtitle: const Text(BuildInfo.buildTimestamp),
-79:                       ),
-80:                     ],
-81:                   ),
-82:                 ),
-83:                 // Hier könnten weitere Sektionen oder Informationen folgen
-84:               ],
-85:             ),
-86:     );
-87:   }
-88: }
-89: 
+// ==== lib\screens\about_screen.dart ====
+
+import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+
+import '../generated/build_info.dart'; // Import der BuildInfo
+
+class AboutScreen extends StatefulWidget {
+  const AboutScreen({super.key});
+
+  @override
+  State<AboutScreen> createState() => _AboutScreenState();
+}
+
+class _AboutScreenState extends State<AboutScreen> {
+  PackageInfo? _packageInfo;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPackageInfo();
+  }
+
+  Future<void> _loadPackageInfo() async {
+    final info = await PackageInfo.fromPlatform();
+    setState(() {
+      _packageInfo = info;
+    });
+  }
+
+  Widget _buildSectionTitle(BuildContext context, String title) {
+    return Padding(
+      padding: const EdgeInsets.only(
+        top: 24.0,
+        bottom: 8.0,
+        left: 16.0,
+        right: 16.0,
+      ),
+      child: Text(
+        title,
+        style: Theme.of(
+          context,
+        ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Über die App'),
+        backgroundColor: Colors.blueGrey,
+        foregroundColor: Colors.white,
+      ),
+      body: _packageInfo == null
+          ? const Center(child: CircularProgressIndicator())
+          : ListView(
+              children: [
+                _buildSectionTitle(context, 'Über die App'),
+                Card(
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 8.0,
+                  ),
+                  child: Column(
+                    children: [
+                      ListTile(
+                        leading: const Icon(Icons.info_outline),
+                        title: const Text('App-Version'),
+                        subtitle: Text(
+                          '${_packageInfo!.version}+${_packageInfo!.buildNumber}',
+                        ),
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.build_circle_outlined),
+                        title: const Text('Build-Zeitpunkt'),
+                        subtitle: const Text(BuildInfo.buildTimestamp),
+                      ),
+                    ],
+                  ),
+                ),
+                // Hier könnten weitere Sektionen oder Informationen folgen
+              ],
+            ),
+    );
+  }
+}
+
 
 // ==== lib\screens\main_screen.dart ====
 
- 1: // ==== lib\screens\main_screen.dart ====
- 2: 
- 3: import 'package:flutter/material.dart';
- 4: import 'about_screen.dart'; // Import des neuen AboutScreen
- 5: 
- 6: class MainScreen extends StatefulWidget {
- 7:   const MainScreen({super.key});
- 8: 
- 9:   @override
-10:   State<MainScreen> createState() => _MainScreenState();
-11: }
-12: 
-13: class _MainScreenState extends State<MainScreen> {
-14:   @override
-15:   void initState() {
-16:     super.initState();
-17:   }
-18: 
-19:   /// Baut die Benutzeroberfläche des MainScreen auf.
-20:   @override
-21:   Widget build(BuildContext context) {
-22:     return Scaffold(
-23:       appBar: AppBar(
-24:         title: const Text('Rezeptsuche'),
-25:         backgroundColor: Colors.blueGrey,
-26:         foregroundColor: Colors.white,
-27:         actions: [
-28:           // Info-Button, der zum AboutScreen navigiert.
-29:           IconButton(
-30:             icon: const Icon(Icons.info_outline),
-31:             onPressed: () {
-32:               Navigator.of(context).push(
-33:                 MaterialPageRoute(builder: (context) => const AboutScreen()),
-34:               );
-35:             },
-36:             tooltip: 'Über die App',
-37:           ),
-38:         ],
-39:       ),
-40:       body: Padding(
-41:         padding: const EdgeInsets.all(16.0),
-42:         child: Column(
-43:           crossAxisAlignment: CrossAxisAlignment.stretch,
-44:           children: [],
-45:         ),
-46:       ),
-47:     );
-48:   }
-49: }
-50: 
+// ==== lib\screens\main_screen.dart ====
+
+import 'package:flutter/material.dart';
+import 'about_screen.dart'; // Import des neuen AboutScreen
+
+class MainScreen extends StatefulWidget {
+  const MainScreen({super.key});
+
+  @override
+  State<MainScreen> createState() => _MainScreenState();
+}
+
+class _MainScreenState extends State<MainScreen> {
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  /// Baut die Benutzeroberfläche des MainScreen auf.
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Rezeptsuche'),
+        backgroundColor: Colors.blueGrey,
+        foregroundColor: Colors.white,
+        actions: [
+          // Info-Button, der zum AboutScreen navigiert.
+          IconButton(
+            icon: const Icon(Icons.info_outline),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const AboutScreen()),
+              );
+            },
+            tooltip: 'Über die App',
+          ),
+        ],
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [],
+        ),
+      ),
+    );
+  }
+}
+
 
 // ==== lib\widgets\custom_marker_icon.dart ====
 
- 1: // lib/widgets/custom_marker_icon.dart
- 2: 
- 3: import 'package:flutter/material.dart';
- 4: 
- 5: /// Ein benutzerdefiniertes Widget, das als Marker-Icon auf der Karte dient.
- 6: class CustomMarkerIcon extends StatelessWidget {
- 7:   const CustomMarkerIcon({super.key});
- 8: 
- 9:   @override
-10:   Widget build(BuildContext context) {
-11:     //return const Icon(Icons.location_on, color: Colors.red, size: 40.0);
-12:     return const Icon(Icons.push_pin, color: Colors.red, size: 40.0);
-13:   }
-14: }
-15: 
+// lib/widgets/custom_marker_icon.dart
+
+import 'package:flutter/material.dart';
+
+/// Ein benutzerdefiniertes Widget, das als Marker-Icon auf der Karte dient.
+class CustomMarkerIcon extends StatelessWidget {
+  const CustomMarkerIcon({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    //return const Icon(Icons.location_on, color: Colors.red, size: 40.0);
+    return const Icon(Icons.push_pin, color: Colors.red, size: 40.0);
+  }
+}
+
 
 // ==== lib\main.dart ====
 
- 1: // lib/main.dart
- 2: 
- 3: import 'package:flutter/material.dart';
- 4: import 'screens/main_screen.dart';
- 5: 
- 6: void main() {
- 7:   runApp(const MyApp());
- 8: }
- 9: 
-10: class MyApp extends StatelessWidget {
-11:   const MyApp({super.key});
-12: 
-13:   @override
-14:   Widget build(BuildContext context) {
-15:     return MaterialApp(
-16:       debugShowCheckedModeBanner: false,
-17:       title: 'uRezepte2',
-18:       home: const MainScreen(),
-19:     );
-20:   }
-21: }
-22: 
+// lib/main.dart
+
+import 'package:flutter/material.dart';
+import 'screens/main_screen.dart';
+
+void main() {
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'uRezepte2',
+      home: const MainScreen(),
+    );
+  }
+}
+
