@@ -1,7 +1,7 @@
 // lib/screens/recipe_detail_screen.dart
 
 import 'package:flutter/material.dart';
-import 'package:flutter_html/flutter_html.dart'; // Für die HTML-Anzeige der Zusammenfassung
+import 'package:flutter_html/flutter_html.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/recipe_detail.dart';
 import '../services/spoonacular_service.dart';

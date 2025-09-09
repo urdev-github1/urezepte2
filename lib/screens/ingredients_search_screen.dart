@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import '../models/recipe.dart';
 import '../services/spoonacular_service.dart';
-import 'recipe_detail_screen.dart'; // Für die Navigation zur Detailseite
+import '../screens/recipe_detail_screen.dart';
 
 class IngredientsSearchScreen extends StatefulWidget {
   const IngredientsSearchScreen({super.key});
@@ -20,6 +20,10 @@ class _IngredientsSearchScreenState extends State<IngredientsSearchScreen> {
   List<Recipe> _recipes = [];
   bool _isLoading = false;
   String? _errorMessage;
+
+  // NEU: Zustandsvariablen für die Filter
+  bool _isGlutenFreeFilterActive = false;
+  bool _isNutFreeFilterActive = false;
 
   @override
   void dispose() {
@@ -55,12 +59,15 @@ class _IngredientsSearchScreenState extends State<IngredientsSearchScreen> {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
-      _recipes = []; // Clear previous results
+      _recipes = [];
     });
 
     try {
+      // Parameter für Diät und Unverträglichkeiten übergeben
       final recipes = await _spoonacularService.findRecipesByIngredients(
         _ingredients,
+        diet: _isGlutenFreeFilterActive ? 'gluten_free' : null,
+        intolerances: _isNutFreeFilterActive ? 'peanut,tree_nut' : null,
       );
       setState(() {
         _recipes = recipes;
@@ -105,7 +112,6 @@ class _IngredientsSearchScreenState extends State<IngredientsSearchScreen> {
               onSubmitted: _addIngredient,
             ),
             const SizedBox(height: 16.0),
-            // Anzeigen der hinzugefügten Zutaten als Chips
             if (_ingredients.isNotEmpty)
               Wrap(
                 spacing: 8.0,
@@ -120,6 +126,38 @@ class _IngredientsSearchScreenState extends State<IngredientsSearchScreen> {
                     .toList(),
               ),
             const SizedBox(height: 16.0),
+            // Filter-Checkboxen für IngredientsSearchScreen
+            Row(
+              children: [
+                Expanded(
+                  child: CheckboxListTile(
+                    title: const Text('glutenfrei'),
+                    value: _isGlutenFreeFilterActive,
+                    onChanged: (bool? newValue) {
+                      setState(() {
+                        _isGlutenFreeFilterActive = newValue ?? false;
+                      });
+                    },
+                    controlAffinity: ListTileControlAffinity.leading,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+                Expanded(
+                  child: CheckboxListTile(
+                    title: const Text('ohne Nüsse'),
+                    value: _isNutFreeFilterActive,
+                    onChanged: (bool? newValue) {
+                      setState(() {
+                        _isNutFreeFilterActive = newValue ?? false;
+                      });
+                    },
+                    controlAffinity: ListTileControlAffinity.leading,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16.0), // Abstand nach den Checkboxen
             ElevatedButton.icon(
               icon: const Icon(Icons.kitchen),
               label: const Text('Rezepte finden'),
@@ -136,10 +174,7 @@ class _IngredientsSearchScreenState extends State<IngredientsSearchScreen> {
                 : _errorMessage != null
                 ? Center(child: Text(_errorMessage!))
                 : Expanded(
-                    child:
-                        _recipes.isEmpty &&
-                            _ingredients
-                                .isNotEmpty // Nur anzeigen, wenn keine Ergebnisse und bereits gesucht wurde
+                    child: _recipes.isEmpty && _ingredients.isNotEmpty
                         ? const Center(
                             child: Text(
                               'Füge Zutaten hinzu und suche nach Rezepten.',

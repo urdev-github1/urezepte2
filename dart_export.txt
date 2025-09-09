@@ -12,7 +12,6 @@ Verzeichnisstruktur des lib-Ordners:
 └── services/
     └── spoonacular_service.dart
 └── widgets/
-    └── custom_marker_icon.dart
 └── main.dart
 
 
@@ -136,7 +135,7 @@ class RecipeDetail {
 class Recipe {
   final int id;
   final String title;
-  final String? image; // Bild-URL ist optional
+  final String? image;
 
   Recipe({required this.id, required this.title, this.image});
 
@@ -152,11 +151,11 @@ class Recipe {
 
 // ==== lib\screens\about_screen.dart ====
 
-// ==== lib\screens\about_screen.dart ====
+// lib\screens\about_screen.dart
 
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import '../generated/build_info.dart'; // Import der BuildInfo
+import '../generated/build_info.dart';
 
 class AboutScreen extends StatefulWidget {
   const AboutScreen({super.key});
@@ -248,7 +247,7 @@ class _AboutScreenState extends State<AboutScreen> {
 import 'package:flutter/material.dart';
 import '../models/recipe.dart';
 import '../services/spoonacular_service.dart';
-import 'recipe_detail_screen.dart'; // Für die Navigation zur Detailseite
+import '../screens/recipe_detail_screen.dart';
 
 class IngredientsSearchScreen extends StatefulWidget {
   const IngredientsSearchScreen({super.key});
@@ -265,6 +264,10 @@ class _IngredientsSearchScreenState extends State<IngredientsSearchScreen> {
   List<Recipe> _recipes = [];
   bool _isLoading = false;
   String? _errorMessage;
+
+  // NEU: Zustandsvariablen für die Filter
+  bool _isGlutenFreeFilterActive = false;
+  bool _isNutFreeFilterActive = false;
 
   @override
   void dispose() {
@@ -300,12 +303,15 @@ class _IngredientsSearchScreenState extends State<IngredientsSearchScreen> {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
-      _recipes = []; // Clear previous results
+      _recipes = [];
     });
 
     try {
+      // Parameter für Diät und Unverträglichkeiten übergeben
       final recipes = await _spoonacularService.findRecipesByIngredients(
         _ingredients,
+        diet: _isGlutenFreeFilterActive ? 'gluten_free' : null,
+        intolerances: _isNutFreeFilterActive ? 'peanut,tree_nut' : null,
       );
       setState(() {
         _recipes = recipes;
@@ -350,7 +356,6 @@ class _IngredientsSearchScreenState extends State<IngredientsSearchScreen> {
               onSubmitted: _addIngredient,
             ),
             const SizedBox(height: 16.0),
-            // Anzeigen der hinzugefügten Zutaten als Chips
             if (_ingredients.isNotEmpty)
               Wrap(
                 spacing: 8.0,
@@ -365,6 +370,38 @@ class _IngredientsSearchScreenState extends State<IngredientsSearchScreen> {
                     .toList(),
               ),
             const SizedBox(height: 16.0),
+            // Filter-Checkboxen für IngredientsSearchScreen
+            Row(
+              children: [
+                Expanded(
+                  child: CheckboxListTile(
+                    title: const Text('glutenfrei'),
+                    value: _isGlutenFreeFilterActive,
+                    onChanged: (bool? newValue) {
+                      setState(() {
+                        _isGlutenFreeFilterActive = newValue ?? false;
+                      });
+                    },
+                    controlAffinity: ListTileControlAffinity.leading,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+                Expanded(
+                  child: CheckboxListTile(
+                    title: const Text('ohne Nüsse'),
+                    value: _isNutFreeFilterActive,
+                    onChanged: (bool? newValue) {
+                      setState(() {
+                        _isNutFreeFilterActive = newValue ?? false;
+                      });
+                    },
+                    controlAffinity: ListTileControlAffinity.leading,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16.0), // Abstand nach den Checkboxen
             ElevatedButton.icon(
               icon: const Icon(Icons.kitchen),
               label: const Text('Rezepte finden'),
@@ -381,10 +418,7 @@ class _IngredientsSearchScreenState extends State<IngredientsSearchScreen> {
                 : _errorMessage != null
                 ? Center(child: Text(_errorMessage!))
                 : Expanded(
-                    child:
-                        _recipes.isEmpty &&
-                            _ingredients
-                                .isNotEmpty // Nur anzeigen, wenn keine Ergebnisse und bereits gesucht wurde
+                    child: _recipes.isEmpty && _ingredients.isNotEmpty
                         ? const Center(
                             child: Text(
                               'Füge Zutaten hinzu und suche nach Rezepten.',
@@ -438,14 +472,14 @@ class _IngredientsSearchScreenState extends State<IngredientsSearchScreen> {
 
 // ==== lib\screens\main_screen.dart ====
 
-// lib\screens\main_screen.dart
+// lib/screens/main_screen.dart
 
 import 'package:flutter/material.dart';
 import 'package:urezepte2/screens/ingredients_search_screen.dart';
 import '../services/spoonacular_service.dart';
 import '../models/recipe.dart';
-import '../screens/about_screen.dart'; // Import des AboutScreen
-import '../screens/recipe_detail_screen.dart'; // NEU: Import des Detail-Screens
+import '../screens/about_screen.dart';
+import '../screens/recipe_detail_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -460,6 +494,10 @@ class _MainScreenState extends State<MainScreen> {
   List<Recipe> _recipes = [];
   bool _isLoading = false;
   String? _errorMessage;
+
+  // Zustandsvariablen für die Filter
+  bool _isGlutenFreeFilterActive = false;
+  bool _isNutFreeFilterActive = false;
 
   @override
   void initState() {
@@ -487,7 +525,12 @@ class _MainScreenState extends State<MainScreen> {
     });
 
     try {
-      final recipes = await _spoonacularService.searchRecipes(query);
+      // Parameter für Diät und Unverträglichkeiten übergeben
+      final recipes = await _spoonacularService.searchRecipes(
+        query,
+        diet: _isGlutenFreeFilterActive ? 'gluten_free' : null,
+        intolerances: _isNutFreeFilterActive ? 'peanut,tree_nut' : null,
+      );
       setState(() {
         _recipes = recipes;
         _isLoading = false;
@@ -514,7 +557,6 @@ class _MainScreenState extends State<MainScreen> {
         backgroundColor: Colors.blueGrey,
         foregroundColor: Colors.white,
         actions: [
-          // Info-Button, der zum AboutScreen navigiert.
           IconButton(
             icon: const Icon(Icons.info_outline),
             onPressed: () {
@@ -544,16 +586,44 @@ class _MainScreenState extends State<MainScreen> {
               onSubmitted: _searchRecipes,
             ),
             const SizedBox(height: 16.0),
+            // NEU: Filter-Checkboxen
+            Row(
+              children: [
+                Expanded(
+                  child: CheckboxListTile(
+                    title: const Text('glutenfrei'),
+                    value: _isGlutenFreeFilterActive,
+                    onChanged: (bool? newValue) {
+                      setState(() {
+                        _isGlutenFreeFilterActive = newValue ?? false;
+                      });
+                    },
+                    controlAffinity: ListTileControlAffinity.leading,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+                Expanded(
+                  child: CheckboxListTile(
+                    title: const Text('ohne Nüsse'),
+                    value: _isNutFreeFilterActive,
+                    onChanged: (bool? newValue) {
+                      setState(() {
+                        _isNutFreeFilterActive = newValue ?? false;
+                      });
+                    },
+                    controlAffinity: ListTileControlAffinity.leading,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16.0), // Abstand nach den Checkboxen
             _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _errorMessage != null
                 ? Center(child: Text(_errorMessage!))
                 : Expanded(
-                    child:
-                        _recipes.isEmpty &&
-                            _searchController
-                                .text
-                                .isNotEmpty // Nur anzeigen, wenn keine Ergebnisse und bereits gesucht wurde
+                    child: _recipes.isEmpty && _searchController.text.isNotEmpty
                         ? const Center(child: Text('Keine Rezepte gefunden.'))
                         : ListView.builder(
                             itemCount: _recipes.length,
@@ -579,7 +649,6 @@ class _MainScreenState extends State<MainScreen> {
                                       : const Icon(Icons.food_bank),
                                   title: Text(recipe.title),
                                   onTap: () {
-                                    // HIER IST DIE KORREKTUR: Navigation zum RecipeDetailScreen
                                     Navigator.of(context).push(
                                       MaterialPageRoute(
                                         builder: (context) =>
@@ -597,7 +666,6 @@ class _MainScreenState extends State<MainScreen> {
           ],
         ),
       ),
-      // NEU: FloatingActionButton für die Zutatensuche
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           Navigator.of(context).push(
@@ -622,7 +690,7 @@ class _MainScreenState extends State<MainScreen> {
 // lib/screens/recipe_detail_screen.dart
 
 import 'package:flutter/material.dart';
-import 'package:flutter_html/flutter_html.dart'; // Für die HTML-Anzeige der Zusammenfassung
+import 'package:flutter_html/flutter_html.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/recipe_detail.dart';
 import '../services/spoonacular_service.dart';
@@ -819,17 +887,30 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/recipe.dart';
-import '../models/recipe_detail.dart'; // Importiere das neue Detail-Modell
+import '../models/recipe_detail.dart';
 
 class SpoonacularService {
   static const String _baseUrl = 'https://api.spoonacular.com';
-  final String _apiKey =
-      '9959e7fc5e464f4ea3e43c2dfd4279a0'; // ERSETZE DIES DURCH DEINEN TATSÄCHLICHEN API-SCHLÜSSEL
+  final String _apiKey = '9959e7fc5e464f4ea3e43c2dfd4279a0';
+  Future<List<Recipe>> searchRecipes(
+    String query, {
+    String? diet, // Optionaler Diät-Parameter
+    String? intolerances, // Optionaler Unverträglichkeits-Parameter
+  }) async {
+    // Grund-URI für die Suche
+    String uriString =
+        '$_baseUrl/recipes/complexSearch?query=$query&apiKey=$_apiKey&number=10';
 
-  Future<List<Recipe>> searchRecipes(String query) async {
-    final uri = Uri.parse(
-      '$_baseUrl/recipes/complexSearch?query=$query&apiKey=$_apiKey&number=10',
-    );
+    // Diät-Parameter hinzufügen, falls vorhanden
+    if (diet != null && diet.isNotEmpty) {
+      uriString += '&diet=$diet';
+    }
+    // Unverträglichkeits-Parameter hinzufügen, falls vorhanden
+    if (intolerances != null && intolerances.isNotEmpty) {
+      uriString += '&intolerances=$intolerances';
+    }
+
+    final uri = Uri.parse(uriString);
 
     try {
       final response = await http.get(uri);
@@ -848,10 +929,10 @@ class SpoonacularService {
     }
   }
 
-  // NEUE METHODE: Rezeptdetails abrufen
+  // Rezeptdetails abrufen (hier keine Filter nötig, da Details schon spezifisch sind)
   Future<RecipeDetail> getRecipeDetails(int id) async {
     final uri = Uri.parse(
-      '$_baseUrl/recipes/$id/information?apiKey=$_apiKey&includeNutrition=false', // includeNutrition ist optional
+      '$_baseUrl/recipes/$id/information?apiKey=$_apiKey&includeNutrition=false',
     );
 
     try {
@@ -870,26 +951,37 @@ class SpoonacularService {
     }
   }
 
-  // NEUE METHODE: Rezepte nach Zutaten finden
+  // Rezepte nach Zutaten finden
   Future<List<Recipe>> findRecipesByIngredients(
-    List<String> ingredients,
-  ) async {
+    List<String> ingredients, {
+    String? diet, // Optionaler Diät-Parameter
+    String? intolerances, // Optionaler Unverträglichkeits-Parameter
+  }) async {
     if (ingredients.isEmpty) {
       return [];
     }
-    final ingredientsString = ingredients.join(
-      ',',
-    ); // Zutaten als Komma-separierten String
-    final uri = Uri.parse(
-      '$_baseUrl/recipes/findByIngredients?ingredients=$ingredientsString&apiKey=$_apiKey&number=20&ranking=1&ignorePantry=true',
-    );
+    final ingredientsString = ingredients.join(',');
+
+    // Grund-URI für die Zutatensuche
+    String uriString =
+        '$_baseUrl/recipes/findByIngredients?ingredients=$ingredientsString&apiKey=$_apiKey&number=20&ranking=1&ignorePantry=true';
+
+    // Diät-Parameter hinzufügen, falls vorhanden
+    if (diet != null && diet.isNotEmpty) {
+      uriString += '&diet=$diet';
+    }
+    // Unverträglichkeits-Parameter hinzufügen, falls vorhanden
+    if (intolerances != null && intolerances.isNotEmpty) {
+      uriString += '&intolerances=$intolerances';
+    }
+
+    final uri = Uri.parse(uriString);
 
     try {
       final response = await http.get(uri);
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
-        // Die API gibt hier direkt eine Liste von Rezepten zurück, nicht ein Map mit 'results'
         return data.map((json) => Recipe.fromJson(json)).toList();
       } else {
         throw Exception(
@@ -903,30 +995,12 @@ class SpoonacularService {
 }
 
 
-// ==== lib\widgets\custom_marker_icon.dart ====
-
-// lib/widgets/custom_marker_icon.dart
-
-import 'package:flutter/material.dart';
-
-/// Ein benutzerdefiniertes Widget, das als Marker-Icon auf der Karte dient.
-class CustomMarkerIcon extends StatelessWidget {
-  const CustomMarkerIcon({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    //return const Icon(Icons.location_on, color: Colors.red, size: 40.0);
-    return const Icon(Icons.push_pin, color: Colors.red, size: 40.0);
-  }
-}
-
-
 // ==== lib\main.dart ====
 
 // lib/main.dart
 
 import 'package:flutter/material.dart';
-import '../screens/main_screen.dart'; // Korrekter Import für MainScreen
+import '../screens/main_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -938,17 +1012,17 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'uRezepte2', // Du kannst hier den Namen deiner App anpassen
+      title: 'uRezepte2',
       theme: ThemeData(
-        primarySwatch: Colors.blueGrey, // Passend zu deiner App-Bar Farbe
+        primarySwatch: Colors.blueGrey,
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.blueGrey,
           foregroundColor: Colors.white,
         ),
         useMaterial3: true,
       ),
-      home: const MainScreen(), // Der MainScreen ist der Startbildschirm
-      debugShowCheckedModeBanner: false, // Optional: Entfernt das Debug-Banner
+      home: const MainScreen(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }

@@ -3,7 +3,7 @@
 class Recipe {
   final int id;
   final String title;
-  final String? image; // Bild-URL ist optional
+  final String? image;
 
   Recipe({required this.id, required this.title, this.image});
 

@@ -1,7 +1,7 @@
 // lib/main.dart
 
 import 'package:flutter/material.dart';
-import '../screens/main_screen.dart'; // Korrekter Import für MainScreen
+import '../screens/main_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -13,17 +13,17 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'uRezepte2', // Du kannst hier den Namen deiner App anpassen
+      title: 'uRezepte2',
       theme: ThemeData(
-        primarySwatch: Colors.blueGrey, // Passend zu deiner App-Bar Farbe
+        primarySwatch: Colors.blueGrey,
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.blueGrey,
           foregroundColor: Colors.white,
         ),
         useMaterial3: true,
       ),
-      home: const MainScreen(), // Der MainScreen ist der Startbildschirm
-      debugShowCheckedModeBanner: false, // Optional: Entfernt das Debug-Banner
+      home: const MainScreen(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }

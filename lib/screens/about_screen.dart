@@ -1,8 +1,8 @@
-// ==== lib\screens\about_screen.dart ====
+// lib\screens\about_screen.dart
 
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import '../generated/build_info.dart'; // Import der BuildInfo
+import '../generated/build_info.dart';
 
 class AboutScreen extends StatefulWidget {
   const AboutScreen({super.key});

@@ -1,11 +1,11 @@
-// lib\screens\main_screen.dart
+// lib/screens/main_screen.dart
 
 import 'package:flutter/material.dart';
 import 'package:urezepte2/screens/ingredients_search_screen.dart';
 import '../services/spoonacular_service.dart';
 import '../models/recipe.dart';
-import '../screens/about_screen.dart'; // Import des AboutScreen
-import '../screens/recipe_detail_screen.dart'; // NEU: Import des Detail-Screens
+import '../screens/about_screen.dart';
+import '../screens/recipe_detail_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -20,6 +20,10 @@ class _MainScreenState extends State<MainScreen> {
   List<Recipe> _recipes = [];
   bool _isLoading = false;
   String? _errorMessage;
+
+  // Zustandsvariablen für die Filter
+  bool _isGlutenFreeFilterActive = false;
+  bool _isNutFreeFilterActive = false;
 
   @override
   void initState() {
@@ -47,7 +51,12 @@ class _MainScreenState extends State<MainScreen> {
     });
 
     try {
-      final recipes = await _spoonacularService.searchRecipes(query);
+      // Parameter für Diät und Unverträglichkeiten übergeben
+      final recipes = await _spoonacularService.searchRecipes(
+        query,
+        diet: _isGlutenFreeFilterActive ? 'gluten_free' : null,
+        intolerances: _isNutFreeFilterActive ? 'peanut,tree_nut' : null,
+      );
       setState(() {
         _recipes = recipes;
         _isLoading = false;
@@ -74,7 +83,6 @@ class _MainScreenState extends State<MainScreen> {
         backgroundColor: Colors.blueGrey,
         foregroundColor: Colors.white,
         actions: [
-          // Info-Button, der zum AboutScreen navigiert.
           IconButton(
             icon: const Icon(Icons.info_outline),
             onPressed: () {
@@ -104,16 +112,44 @@ class _MainScreenState extends State<MainScreen> {
               onSubmitted: _searchRecipes,
             ),
             const SizedBox(height: 16.0),
+            // NEU: Filter-Checkboxen
+            Row(
+              children: [
+                Expanded(
+                  child: CheckboxListTile(
+                    title: const Text('glutenfrei'),
+                    value: _isGlutenFreeFilterActive,
+                    onChanged: (bool? newValue) {
+                      setState(() {
+                        _isGlutenFreeFilterActive = newValue ?? false;
+                      });
+                    },
+                    controlAffinity: ListTileControlAffinity.leading,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+                Expanded(
+                  child: CheckboxListTile(
+                    title: const Text('ohne Nüsse'),
+                    value: _isNutFreeFilterActive,
+                    onChanged: (bool? newValue) {
+                      setState(() {
+                        _isNutFreeFilterActive = newValue ?? false;
+                      });
+                    },
+                    controlAffinity: ListTileControlAffinity.leading,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16.0), // Abstand nach den Checkboxen
             _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _errorMessage != null
                 ? Center(child: Text(_errorMessage!))
                 : Expanded(
-                    child:
-                        _recipes.isEmpty &&
-                            _searchController
-                                .text
-                                .isNotEmpty // Nur anzeigen, wenn keine Ergebnisse und bereits gesucht wurde
+                    child: _recipes.isEmpty && _searchController.text.isNotEmpty
                         ? const Center(child: Text('Keine Rezepte gefunden.'))
                         : ListView.builder(
                             itemCount: _recipes.length,
@@ -139,7 +175,6 @@ class _MainScreenState extends State<MainScreen> {
                                       : const Icon(Icons.food_bank),
                                   title: Text(recipe.title),
                                   onTap: () {
-                                    // HIER IST DIE KORREKTUR: Navigation zum RecipeDetailScreen
                                     Navigator.of(context).push(
                                       MaterialPageRoute(
                                         builder: (context) =>
@@ -157,7 +192,6 @@ class _MainScreenState extends State<MainScreen> {
           ],
         ),
       ),
-      // NEU: FloatingActionButton für die Zutatensuche
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           Navigator.of(context).push(
