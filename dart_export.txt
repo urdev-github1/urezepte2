@@ -6,6 +6,7 @@ Verzeichnisstruktur des lib-Ordners:
     └── recipe.dart
 └── screens/
     ├── about_screen.dart
+    ├── ingredients_search_screen.dart
     ├── main_screen.dart
     └── recipe_detail_screen.dart
 └── services/
@@ -240,15 +241,211 @@ class _AboutScreenState extends State<AboutScreen> {
 }
 
 
+// ==== lib\screens\ingredients_search_screen.dart ====
+
+// lib/screens/ingredients_search_screen.dart
+
+import 'package:flutter/material.dart';
+import '../models/recipe.dart';
+import '../services/spoonacular_service.dart';
+import 'recipe_detail_screen.dart'; // Für die Navigation zur Detailseite
+
+class IngredientsSearchScreen extends StatefulWidget {
+  const IngredientsSearchScreen({super.key});
+
+  @override
+  State<IngredientsSearchScreen> createState() =>
+      _IngredientsSearchScreenState();
+}
+
+class _IngredientsSearchScreenState extends State<IngredientsSearchScreen> {
+  final TextEditingController _ingredientController = TextEditingController();
+  final SpoonacularService _spoonacularService = SpoonacularService();
+  final List<String> _ingredients = [];
+  List<Recipe> _recipes = [];
+  bool _isLoading = false;
+  String? _errorMessage;
+
+  @override
+  void dispose() {
+    _ingredientController.dispose();
+    super.dispose();
+  }
+
+  void _addIngredient(String ingredient) {
+    if (ingredient.trim().isNotEmpty &&
+        !_ingredients.contains(ingredient.trim().toLowerCase())) {
+      setState(() {
+        _ingredients.add(ingredient.trim().toLowerCase());
+        _ingredientController.clear();
+      });
+    }
+  }
+
+  void _removeIngredient(String ingredient) {
+    setState(() {
+      _ingredients.remove(ingredient);
+    });
+  }
+
+  Future<void> _searchRecipesByIngredients() async {
+    if (_ingredients.isEmpty) {
+      setState(() {
+        _recipes = [];
+        _errorMessage = 'Bitte füge zuerst Zutaten hinzu.';
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+      _recipes = []; // Clear previous results
+    });
+
+    try {
+      final recipes = await _spoonacularService.findRecipesByIngredients(
+        _ingredients,
+      );
+      setState(() {
+        _recipes = recipes;
+        _isLoading = false;
+        if (_recipes.isEmpty) {
+          _errorMessage = 'Keine Rezepte mit diesen Zutaten gefunden.';
+        }
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString().contains("Exception: Netzwerkfehler")
+            ? "Keine Internetverbindung oder API-Fehler."
+            : e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Rezepte nach Zutaten'),
+        backgroundColor: Colors.blueGrey,
+        foregroundColor: Colors.white,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              controller: _ingredientController,
+              decoration: InputDecoration(
+                labelText: 'Zutat hinzufügen (z.B. Huhn, Tomaten)',
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.add),
+                  onPressed: () => _addIngredient(_ingredientController.text),
+                ),
+                border: const OutlineInputBorder(),
+              ),
+              onSubmitted: _addIngredient,
+            ),
+            const SizedBox(height: 16.0),
+            // Anzeigen der hinzugefügten Zutaten als Chips
+            if (_ingredients.isNotEmpty)
+              Wrap(
+                spacing: 8.0,
+                runSpacing: 4.0,
+                children: _ingredients
+                    .map(
+                      (ingredient) => Chip(
+                        label: Text(ingredient),
+                        onDeleted: () => _removeIngredient(ingredient),
+                      ),
+                    )
+                    .toList(),
+              ),
+            const SizedBox(height: 16.0),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.kitchen),
+              label: const Text('Rezepte finden'),
+              onPressed: _isLoading ? null : _searchRecipesByIngredients,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blueGrey,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12.0),
+              ),
+            ),
+            const SizedBox(height: 16.0),
+            _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _errorMessage != null
+                ? Center(child: Text(_errorMessage!))
+                : Expanded(
+                    child:
+                        _recipes.isEmpty &&
+                            _ingredients
+                                .isNotEmpty // Nur anzeigen, wenn keine Ergebnisse und bereits gesucht wurde
+                        ? const Center(
+                            child: Text(
+                              'Füge Zutaten hinzu und suche nach Rezepten.',
+                            ),
+                          )
+                        : ListView.builder(
+                            itemCount: _recipes.length,
+                            itemBuilder: (context, index) {
+                              final recipe = _recipes[index];
+                              return Card(
+                                margin: const EdgeInsets.symmetric(
+                                  vertical: 8.0,
+                                ),
+                                child: ListTile(
+                                  leading: recipe.image != null
+                                      ? Image.network(
+                                          recipe.image!,
+                                          width: 50,
+                                          height: 50,
+                                          fit: BoxFit.cover,
+                                          errorBuilder:
+                                              (context, error, stackTrace) =>
+                                                  const Icon(
+                                                    Icons.broken_image,
+                                                  ),
+                                        )
+                                      : const Icon(Icons.food_bank),
+                                  title: Text(recipe.title),
+                                  onTap: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            RecipeDetailScreen(
+                                              recipeId: recipe.id,
+                                            ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
 // ==== lib\screens\main_screen.dart ====
 
 // lib\screens\main_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:urezepte2/screens/ingredients_search_screen.dart';
 import '../services/spoonacular_service.dart';
 import '../models/recipe.dart';
 import '../screens/about_screen.dart'; // Import des AboutScreen
-import 'recipe_detail_screen.dart'; // NEU: Import des Detail-Screens
+import '../screens/recipe_detail_screen.dart'; // NEU: Import des Detail-Screens
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -295,7 +492,7 @@ class _MainScreenState extends State<MainScreen> {
         _recipes = recipes;
         _isLoading = false;
         if (_recipes.isEmpty) {
-          _errorMessage = 'Keine Rezepte für "${query}" gefunden.';
+          _errorMessage = 'Keine Rezepte für "$query" gefunden.';
         }
       });
     } catch (e) {
@@ -400,6 +597,21 @@ class _MainScreenState extends State<MainScreen> {
           ],
         ),
       ),
+      // NEU: FloatingActionButton für die Zutatensuche
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => const IngredientsSearchScreen(),
+            ),
+          );
+        },
+        label: const Text('Rezepte nach Zutaten'),
+        icon: const Icon(Icons.kitchen),
+        backgroundColor: Colors.blueGrey,
+        foregroundColor: Colors.white,
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 }
@@ -411,6 +623,7 @@ class _MainScreenState extends State<MainScreen> {
 
 import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart'; // Für die HTML-Anzeige der Zusammenfassung
+import 'package:url_launcher/url_launcher.dart';
 import '../models/recipe_detail.dart';
 import '../services/spoonacular_service.dart';
 
@@ -575,9 +788,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                         ),
                         InkWell(
                           onTap: () {
-                            // TODO: Implementiere das Öffnen der URL im Browser
-                            // import 'package:url_launcher/url_launcher.dart';
-                            // launchUrl(Uri.parse(recipe.sourceUrl!));
+                            // Öffnen der URL im Browser
+                            launchUrl(Uri.parse(recipe.sourceUrl!));
                           },
                           child: Text(
                             recipe.sourceUrl!,
@@ -657,6 +869,37 @@ class SpoonacularService {
       throw Exception('Netzwerkfehler beim Abrufen der Details: $e');
     }
   }
+
+  // NEUE METHODE: Rezepte nach Zutaten finden
+  Future<List<Recipe>> findRecipesByIngredients(
+    List<String> ingredients,
+  ) async {
+    if (ingredients.isEmpty) {
+      return [];
+    }
+    final ingredientsString = ingredients.join(
+      ',',
+    ); // Zutaten als Komma-separierten String
+    final uri = Uri.parse(
+      '$_baseUrl/recipes/findByIngredients?ingredients=$ingredientsString&apiKey=$_apiKey&number=20&ranking=1&ignorePantry=true',
+    );
+
+    try {
+      final response = await http.get(uri);
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        // Die API gibt hier direkt eine Liste von Rezepten zurück, nicht ein Map mit 'results'
+        return data.map((json) => Recipe.fromJson(json)).toList();
+      } else {
+        throw Exception(
+          'Fehler beim Laden der Rezepte nach Zutaten: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Netzwerkfehler beim Abrufen der Zutatenrezepte: $e');
+    }
+  }
 }
 
 
@@ -683,7 +926,7 @@ class CustomMarkerIcon extends StatelessWidget {
 // lib/main.dart
 
 import 'package:flutter/material.dart';
-import 'package:urezepte2/screens/main_screen.dart'; // Korrekter Import für MainScreen
+import '../screens/main_screen.dart'; // Korrekter Import für MainScreen
 
 void main() {
   runApp(const MyApp());

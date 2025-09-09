@@ -52,7 +52,7 @@ class _MainScreenState extends State<MainScreen> {
         _recipes = recipes;
         _isLoading = false;
         if (_recipes.isEmpty) {
-          _errorMessage = 'Keine Rezepte für "${query}" gefunden.';
+          _errorMessage = 'Keine Rezepte für "$query" gefunden.';
         }
       });
     } catch (e) {

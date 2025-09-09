@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart'; // Für die HTML-Anzeige der Zusammenfassung
+import 'package:url_launcher/url_launcher.dart';
 import '../models/recipe_detail.dart';
 import '../services/spoonacular_service.dart';
 
@@ -166,9 +167,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                         ),
                         InkWell(
                           onTap: () {
-                            // TODO: Implementiere das Öffnen der URL im Browser
-                            // import 'package:url_launcher/url_launcher.dart';
-                            // launchUrl(Uri.parse(recipe.sourceUrl!));
+                            // Öffnen der URL im Browser
+                            launchUrl(Uri.parse(recipe.sourceUrl!));
                           },
                           child: Text(
                             recipe.sourceUrl!,

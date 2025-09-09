@@ -16,7 +16,7 @@ class IngredientsSearchScreen extends StatefulWidget {
 class _IngredientsSearchScreenState extends State<IngredientsSearchScreen> {
   final TextEditingController _ingredientController = TextEditingController();
   final SpoonacularService _spoonacularService = SpoonacularService();
-  List<String> _ingredients = [];
+  final List<String> _ingredients = [];
   List<Recipe> _recipes = [];
   bool _isLoading = false;
   String? _errorMessage;

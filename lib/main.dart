@@ -1,7 +1,7 @@
 // lib/main.dart
 
 import 'package:flutter/material.dart';
-import 'package:urezepte2/screens/main_screen.dart'; // Korrekter Import für MainScreen
+import '../screens/main_screen.dart'; // Korrekter Import für MainScreen
 
 void main() {
   runApp(const MyApp());
