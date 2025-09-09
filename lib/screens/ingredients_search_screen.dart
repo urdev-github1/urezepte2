@@ -1,42 +1,53 @@
-// lib\screens\main_screen.dart
+// lib/screens/ingredients_search_screen.dart
 
 import 'package:flutter/material.dart';
-import 'package:urezepte2/screens/ingredients_search_screen.dart';
-import '../services/spoonacular_service.dart';
 import '../models/recipe.dart';
-import '../screens/about_screen.dart'; // Import des AboutScreen
-import '../screens/recipe_detail_screen.dart'; // NEU: Import des Detail-Screens
+import '../services/spoonacular_service.dart';
+import 'recipe_detail_screen.dart'; // Für die Navigation zur Detailseite
 
-class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
+class IngredientsSearchScreen extends StatefulWidget {
+  const IngredientsSearchScreen({super.key});
 
   @override
-  State<MainScreen> createState() => _MainScreenState();
+  State<IngredientsSearchScreen> createState() =>
+      _IngredientsSearchScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
-  final TextEditingController _searchController = TextEditingController();
+class _IngredientsSearchScreenState extends State<IngredientsSearchScreen> {
+  final TextEditingController _ingredientController = TextEditingController();
   final SpoonacularService _spoonacularService = SpoonacularService();
+  List<String> _ingredients = [];
   List<Recipe> _recipes = [];
   bool _isLoading = false;
   String? _errorMessage;
 
   @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
   void dispose() {
-    _searchController.dispose();
+    _ingredientController.dispose();
     super.dispose();
   }
 
-  Future<void> _searchRecipes(String query) async {
-    if (query.trim().isEmpty) {
+  void _addIngredient(String ingredient) {
+    if (ingredient.trim().isNotEmpty &&
+        !_ingredients.contains(ingredient.trim().toLowerCase())) {
+      setState(() {
+        _ingredients.add(ingredient.trim().toLowerCase());
+        _ingredientController.clear();
+      });
+    }
+  }
+
+  void _removeIngredient(String ingredient) {
+    setState(() {
+      _ingredients.remove(ingredient);
+    });
+  }
+
+  Future<void> _searchRecipesByIngredients() async {
+    if (_ingredients.isEmpty) {
       setState(() {
         _recipes = [];
-        _errorMessage = 'Bitte gib einen Suchbegriff ein.';
+        _errorMessage = 'Bitte füge zuerst Zutaten hinzu.';
       });
       return;
     }
@@ -44,15 +55,18 @@ class _MainScreenState extends State<MainScreen> {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
+      _recipes = []; // Clear previous results
     });
 
     try {
-      final recipes = await _spoonacularService.searchRecipes(query);
+      final recipes = await _spoonacularService.findRecipesByIngredients(
+        _ingredients,
+      );
       setState(() {
         _recipes = recipes;
         _isLoading = false;
         if (_recipes.isEmpty) {
-          _errorMessage = 'Keine Rezepte für "${query}" gefunden.';
+          _errorMessage = 'Keine Rezepte mit diesen Zutaten gefunden.';
         }
       });
     } catch (e) {
@@ -65,26 +79,13 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  /// Baut die Benutzeroberfläche des MainScreen auf.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Rezeptsuche'),
+        title: const Text('Rezepte nach Zutaten'),
         backgroundColor: Colors.blueGrey,
         foregroundColor: Colors.white,
-        actions: [
-          // Info-Button, der zum AboutScreen navigiert.
-          IconButton(
-            icon: const Icon(Icons.info_outline),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const AboutScreen()),
-              );
-            },
-            tooltip: 'Über die App',
-          ),
-        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -92,16 +93,42 @@ class _MainScreenState extends State<MainScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             TextField(
-              controller: _searchController,
+              controller: _ingredientController,
               decoration: InputDecoration(
-                labelText: 'Rezepte suchen (z.B. Pasta, Chicken)',
+                labelText: 'Zutat hinzufügen (z.B. Huhn, Tomaten)',
                 suffixIcon: IconButton(
-                  icon: const Icon(Icons.search),
-                  onPressed: () => _searchRecipes(_searchController.text),
+                  icon: const Icon(Icons.add),
+                  onPressed: () => _addIngredient(_ingredientController.text),
                 ),
                 border: const OutlineInputBorder(),
               ),
-              onSubmitted: _searchRecipes,
+              onSubmitted: _addIngredient,
+            ),
+            const SizedBox(height: 16.0),
+            // Anzeigen der hinzugefügten Zutaten als Chips
+            if (_ingredients.isNotEmpty)
+              Wrap(
+                spacing: 8.0,
+                runSpacing: 4.0,
+                children: _ingredients
+                    .map(
+                      (ingredient) => Chip(
+                        label: Text(ingredient),
+                        onDeleted: () => _removeIngredient(ingredient),
+                      ),
+                    )
+                    .toList(),
+              ),
+            const SizedBox(height: 16.0),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.kitchen),
+              label: const Text('Rezepte finden'),
+              onPressed: _isLoading ? null : _searchRecipesByIngredients,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blueGrey,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12.0),
+              ),
             ),
             const SizedBox(height: 16.0),
             _isLoading
@@ -111,10 +138,13 @@ class _MainScreenState extends State<MainScreen> {
                 : Expanded(
                     child:
                         _recipes.isEmpty &&
-                            _searchController
-                                .text
+                            _ingredients
                                 .isNotEmpty // Nur anzeigen, wenn keine Ergebnisse und bereits gesucht wurde
-                        ? const Center(child: Text('Keine Rezepte gefunden.'))
+                        ? const Center(
+                            child: Text(
+                              'Füge Zutaten hinzu und suche nach Rezepten.',
+                            ),
+                          )
                         : ListView.builder(
                             itemCount: _recipes.length,
                             itemBuilder: (context, index) {
@@ -139,7 +169,6 @@ class _MainScreenState extends State<MainScreen> {
                                       : const Icon(Icons.food_bank),
                                   title: Text(recipe.title),
                                   onTap: () {
-                                    // HIER IST DIE KORREKTUR: Navigation zum RecipeDetailScreen
                                     Navigator.of(context).push(
                                       MaterialPageRoute(
                                         builder: (context) =>
@@ -157,21 +186,6 @@ class _MainScreenState extends State<MainScreen> {
           ],
         ),
       ),
-      // NEU: FloatingActionButton für die Zutatensuche
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => const IngredientsSearchScreen(),
-            ),
-          );
-        },
-        label: const Text('Rezepte nach Zutaten'),
-        icon: const Icon(Icons.kitchen),
-        backgroundColor: Colors.blueGrey,
-        foregroundColor: Colors.white,
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 }

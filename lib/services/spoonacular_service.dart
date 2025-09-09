@@ -53,4 +53,35 @@ class SpoonacularService {
       throw Exception('Netzwerkfehler beim Abrufen der Details: $e');
     }
   }
+
+  // NEUE METHODE: Rezepte nach Zutaten finden
+  Future<List<Recipe>> findRecipesByIngredients(
+    List<String> ingredients,
+  ) async {
+    if (ingredients.isEmpty) {
+      return [];
+    }
+    final ingredientsString = ingredients.join(
+      ',',
+    ); // Zutaten als Komma-separierten String
+    final uri = Uri.parse(
+      '$_baseUrl/recipes/findByIngredients?ingredients=$ingredientsString&apiKey=$_apiKey&number=20&ranking=1&ignorePantry=true',
+    );
+
+    try {
+      final response = await http.get(uri);
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        // Die API gibt hier direkt eine Liste von Rezepten zurück, nicht ein Map mit 'results'
+        return data.map((json) => Recipe.fromJson(json)).toList();
+      } else {
+        throw Exception(
+          'Fehler beim Laden der Rezepte nach Zutaten: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Netzwerkfehler beim Abrufen der Zutatenrezepte: $e');
+    }
+  }
 }
