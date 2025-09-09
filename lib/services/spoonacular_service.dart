@@ -7,23 +7,31 @@ import '../models/recipe_detail.dart';
 
 class SpoonacularService {
   static const String _baseUrl = 'https://api.spoonacular.com';
-  final String _apiKey = '9959e7fc5e464f4ea3e43c2dfd4279a0';
+  final String _apiKey =
+      '9959e7fc5e464f4ea3e43c2dfd4279a0'; // ERSETZE DIES DURCH DEINEN TATSÄCHLICHEN API-SCHLÜSSEL
+
   Future<List<Recipe>> searchRecipes(
     String query, {
-    String? diet, // Optionaler Diät-Parameter
-    String? intolerances, // Optionaler Unverträglichkeits-Parameter
+    String? diet,
+    String? intolerances,
+    String? sort, // NEU: Optionaler Sortier-Parameter
+    String? sortDirection, // NEU: Optionaler Sortierrichtung-Parameter
   }) async {
-    // Grund-URI für die Suche
     String uriString =
         '$_baseUrl/recipes/complexSearch?query=$query&apiKey=$_apiKey&number=10';
 
-    // Diät-Parameter hinzufügen, falls vorhanden
     if (diet != null && diet.isNotEmpty) {
       uriString += '&diet=$diet';
     }
-    // Unverträglichkeits-Parameter hinzufügen, falls vorhanden
     if (intolerances != null && intolerances.isNotEmpty) {
       uriString += '&intolerances=$intolerances';
+    }
+    // NEU: Sortier-Parameter hinzufügen, falls vorhanden
+    if (sort != null && sort.isNotEmpty) {
+      uriString += '&sort=$sort';
+      if (sortDirection != null && sortDirection.isNotEmpty) {
+        uriString += '&sortDirection=$sortDirection';
+      }
     }
 
     final uri = Uri.parse(uriString);
@@ -45,7 +53,6 @@ class SpoonacularService {
     }
   }
 
-  // Rezeptdetails abrufen (hier keine Filter nötig, da Details schon spezifisch sind)
   Future<RecipeDetail> getRecipeDetails(int id) async {
     final uri = Uri.parse(
       '$_baseUrl/recipes/$id/information?apiKey=$_apiKey&includeNutrition=false',
@@ -67,28 +74,33 @@ class SpoonacularService {
     }
   }
 
-  // Rezepte nach Zutaten finden
   Future<List<Recipe>> findRecipesByIngredients(
     List<String> ingredients, {
-    String? diet, // Optionaler Diät-Parameter
-    String? intolerances, // Optionaler Unverträglichkeits-Parameter
+    String? diet,
+    String? intolerances,
+    String? sort, // NEU: Optionaler Sortier-Parameter
+    String? sortDirection, // NEU: Optionaler Sortierrichtung-Parameter
   }) async {
     if (ingredients.isEmpty) {
       return [];
     }
     final ingredientsString = ingredients.join(',');
 
-    // Grund-URI für die Zutatensuche
     String uriString =
         '$_baseUrl/recipes/findByIngredients?ingredients=$ingredientsString&apiKey=$_apiKey&number=20&ranking=1&ignorePantry=true';
 
-    // Diät-Parameter hinzufügen, falls vorhanden
     if (diet != null && diet.isNotEmpty) {
       uriString += '&diet=$diet';
     }
-    // Unverträglichkeits-Parameter hinzufügen, falls vorhanden
     if (intolerances != null && intolerances.isNotEmpty) {
       uriString += '&intolerances=$intolerances';
+    }
+    // NEU: Sortier-Parameter hinzufügen, falls vorhanden
+    if (sort != null && sort.isNotEmpty) {
+      uriString += '&sort=$sort';
+      if (sortDirection != null && sortDirection.isNotEmpty) {
+        uriString += '&sortDirection=$sortDirection';
+      }
     }
 
     final uri = Uri.parse(uriString);

@@ -7,6 +7,9 @@ import '../models/recipe.dart';
 import '../screens/about_screen.dart';
 import '../screens/recipe_detail_screen.dart';
 
+// NEU: Enum für Sortieroptionen
+enum SortOption { none, preparationTime, popularity }
+
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
@@ -24,6 +27,9 @@ class _MainScreenState extends State<MainScreen> {
   // Zustandsvariablen für die Filter
   bool _isGlutenFreeFilterActive = false;
   bool _isNutFreeFilterActive = false;
+
+  // NEU: Zustandsvariable für die Sortierung
+  SortOption _selectedSortOption = SortOption.none;
 
   @override
   void initState() {
@@ -50,12 +56,31 @@ class _MainScreenState extends State<MainScreen> {
       _errorMessage = null;
     });
 
+    String? sortParam;
+    String? sortDirectionParam;
+
+    // NEU: Sortierparameter basierend auf der Auswahl setzen
+    switch (_selectedSortOption) {
+      case SortOption.preparationTime:
+        sortParam = 'time';
+        sortDirectionParam = 'asc'; // Kürzeste Zeit zuerst
+        break;
+      case SortOption.popularity:
+        sortParam = 'popularity';
+        sortDirectionParam = 'desc'; // Beliebteste zuerst
+        break;
+      case SortOption.none:
+        // Keine Sortierung
+        break;
+    }
+
     try {
-      // Parameter für Diät und Unverträglichkeiten übergeben
       final recipes = await _spoonacularService.searchRecipes(
         query,
         diet: _isGlutenFreeFilterActive ? 'gluten_free' : null,
         intolerances: _isNutFreeFilterActive ? 'peanut,tree_nut' : null,
+        sort: sortParam, // NEU: Sortierparameter übergeben
+        sortDirection: sortDirectionParam, // NEU: Sortierrichtung übergeben
       );
       setState(() {
         _recipes = recipes;
@@ -112,7 +137,6 @@ class _MainScreenState extends State<MainScreen> {
               onSubmitted: _searchRecipes,
             ),
             const SizedBox(height: 16.0),
-            // NEU: Filter-Checkboxen
             Row(
               children: [
                 Expanded(
@@ -143,7 +167,38 @@ class _MainScreenState extends State<MainScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 16.0), // Abstand nach den Checkboxen
+            const SizedBox(height: 8.0),
+            // NEU: Dropdown für Sortierung
+            Align(
+              alignment: Alignment.centerLeft,
+              child: DropdownButton<SortOption>(
+                value: _selectedSortOption,
+                onChanged: (SortOption? newValue) {
+                  setState(() {
+                    _selectedSortOption = newValue ?? SortOption.none;
+                    // Optional: Suche erneut auslösen, wenn Sortierung geändert wird
+                    if (_searchController.text.isNotEmpty) {
+                      _searchRecipes(_searchController.text);
+                    }
+                  });
+                },
+                items: const [
+                  DropdownMenuItem(
+                    value: SortOption.none,
+                    child: Text('Standardsortierung'),
+                  ),
+                  DropdownMenuItem(
+                    value: SortOption.preparationTime,
+                    child: Text('Zubereitungszeit'),
+                  ),
+                  DropdownMenuItem(
+                    value: SortOption.popularity,
+                    child: Text('Beliebtheit'),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16.0),
             _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _errorMessage != null
