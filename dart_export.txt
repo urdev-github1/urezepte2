@@ -2,10 +2,14 @@ Verzeichnisstruktur des lib-Ordners:
 
 └── generated/
 └── models/
+    ├── recipe_detail.dart
+    └── recipe.dart
 └── screens/
     ├── about_screen.dart
-    └── main_screen.dart
+    ├── main_screen.dart
+    └── recipe_detail_screen.dart
 └── services/
+    └── spoonacular_service.dart
 └── widgets/
     └── custom_marker_icon.dart
 └── main.dart
@@ -15,190 +19,687 @@ Verzeichnisstruktur des lib-Ordners:
 
 Dateiinhalte:
 
-// ==== lib\screens\about_screen.dart ====
+// ==== lib\models\recipe_detail.dart ====
+
+  1: // lib/models/recipe_detail.dart
+  2: 
+  3: class Ingredient {
+  4:   final int id;
+  5:   final String name;
+  6:   final String? image;
+  7:   final double amount;
+  8:   final String unit;
+  9: 
+ 10:   Ingredient({
+ 11:     required this.id,
+ 12:     required this.name,
+ 13:     this.image,
+ 14:     required this.amount,
+ 15:     required this.unit,
+ 16:   });
+ 17: 
+ 18:   factory Ingredient.fromJson(Map<String, dynamic> json) {
+ 19:     return Ingredient(
+ 20:       id: json['id'] as int,
+ 21:       name: json['name'] as String,
+ 22:       image: json['image'] as String?,
+ 23:       amount: (json['amount'] as num).toDouble(),
+ 24:       unit: json['unit'] as String,
+ 25:     );
+ 26:   }
+ 27: }
+ 28: 
+ 29: class InstructionStep {
+ 30:   final int number;
+ 31:   final String step;
+ 32: 
+ 33:   InstructionStep({required this.number, required this.step});
+ 34: 
+ 35:   factory InstructionStep.fromJson(Map<String, dynamic> json) {
+ 36:     return InstructionStep(
+ 37:       number: json['number'] as int,
+ 38:       step: json['step'] as String,
+ 39:     );
+ 40:   }
+ 41: }
+ 42: 
+ 43: class AnalyzedInstruction {
+ 44:   final String name;
+ 45:   final List<InstructionStep> steps;
+ 46: 
+ 47:   AnalyzedInstruction({required this.name, required this.steps});
+ 48: 
+ 49:   factory AnalyzedInstruction.fromJson(Map<String, dynamic> json) {
+ 50:     return AnalyzedInstruction(
+ 51:       name: json['name'] as String? ?? '', // Kann leer sein
+ 52:       steps: (json['steps'] as List<dynamic>)
+ 53:           .map((stepJson) => InstructionStep.fromJson(stepJson))
+ 54:           .toList(),
+ 55:     );
+ 56:   }
+ 57: }
+ 58: 
+ 59: class RecipeDetail {
+ 60:   final int id;
+ 61:   final String title;
+ 62:   final String? image;
+ 63:   final int? servings;
+ 64:   final int? readyInMinutes;
+ 65:   final String? sourceUrl;
+ 66:   final String? summary;
+ 67:   final List<Ingredient> extendedIngredients;
+ 68:   final List<AnalyzedInstruction> analyzedInstructions;
+ 69: 
+ 70:   RecipeDetail({
+ 71:     required this.id,
+ 72:     required this.title,
+ 73:     this.image,
+ 74:     this.servings,
+ 75:     this.readyInMinutes,
+ 76:     this.sourceUrl,
+ 77:     this.summary,
+ 78:     required this.extendedIngredients,
+ 79:     required this.analyzedInstructions,
+ 80:   });
+ 81: 
+ 82:   factory RecipeDetail.fromJson(Map<String, dynamic> json) {
+ 83:     var ingredientsList = json['extendedIngredients'] as List<dynamic>?;
+ 84:     List<Ingredient> ingredients = ingredientsList != null
+ 85:         ? ingredientsList.map((i) => Ingredient.fromJson(i)).toList()
+ 86:         : [];
+ 87: 
+ 88:     var instructionsList = json['analyzedInstructions'] as List<dynamic>?;
+ 89:     List<AnalyzedInstruction> instructions = instructionsList != null
+ 90:         ? instructionsList.map((i) => AnalyzedInstruction.fromJson(i)).toList()
+ 91:         : [];
+ 92: 
+ 93:     return RecipeDetail(
+ 94:       id: json['id'] as int,
+ 95:       title: json['title'] as String,
+ 96:       image: json['image'] as String?,
+ 97:       servings: json['servings'] as int?,
+ 98:       readyInMinutes: json['readyInMinutes'] as int?,
+ 99:       sourceUrl: json['sourceUrl'] as String?,
+100:       summary: json['summary'] as String?,
+101:       extendedIngredients: ingredients,
+102:       analyzedInstructions: instructions,
+103:     );
+104:   }
+105: }
+106: 
+
+// ==== lib\models\recipe.dart ====
+
+ 1: // lib/models/recipe.dart
+ 2: 
+ 3: class Recipe {
+ 4:   final int id;
+ 5:   final String title;
+ 6:   final String? image; // Bild-URL ist optional
+ 7: 
+ 8:   Recipe({required this.id, required this.title, this.image});
+ 9: 
+10:   factory Recipe.fromJson(Map<String, dynamic> json) {
+11:     return Recipe(
+12:       id: json['id'] as int,
+13:       title: json['title'] as String,
+14:       image: json['image'] as String?,
+15:     );
+16:   }
+17: }
+18: 
 
 // ==== lib\screens\about_screen.dart ====
 
-import 'package:flutter/material.dart';
-import 'package:package_info_plus/package_info_plus.dart';
-
-import '../generated/build_info.dart'; // Import der BuildInfo
-
-class AboutScreen extends StatefulWidget {
-  const AboutScreen({super.key});
-
-  @override
-  State<AboutScreen> createState() => _AboutScreenState();
-}
-
-class _AboutScreenState extends State<AboutScreen> {
-  PackageInfo? _packageInfo;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadPackageInfo();
-  }
-
-  Future<void> _loadPackageInfo() async {
-    final info = await PackageInfo.fromPlatform();
-    setState(() {
-      _packageInfo = info;
-    });
-  }
-
-  Widget _buildSectionTitle(BuildContext context, String title) {
-    return Padding(
-      padding: const EdgeInsets.only(
-        top: 24.0,
-        bottom: 8.0,
-        left: 16.0,
-        right: 16.0,
-      ),
-      child: Text(
-        title,
-        style: Theme.of(
-          context,
-        ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Über die App'),
-        backgroundColor: Colors.blueGrey,
-        foregroundColor: Colors.white,
-      ),
-      body: _packageInfo == null
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              children: [
-                _buildSectionTitle(context, 'Über die App'),
-                Card(
-                  margin: const EdgeInsets.symmetric(
-                    horizontal: 16.0,
-                    vertical: 8.0,
-                  ),
-                  child: Column(
-                    children: [
-                      ListTile(
-                        leading: const Icon(Icons.info_outline),
-                        title: const Text('App-Version'),
-                        subtitle: Text(
-                          '${_packageInfo!.version}+${_packageInfo!.buildNumber}',
-                        ),
-                      ),
-                      ListTile(
-                        leading: const Icon(Icons.build_circle_outlined),
-                        title: const Text('Build-Zeitpunkt'),
-                        subtitle: const Text(BuildInfo.buildTimestamp),
-                      ),
-                    ],
-                  ),
-                ),
-                // Hier könnten weitere Sektionen oder Informationen folgen
-              ],
-            ),
-    );
-  }
-}
-
+ 1: // ==== lib\screens\about_screen.dart ====
+ 2: 
+ 3: import 'package:flutter/material.dart';
+ 4: import 'package:package_info_plus/package_info_plus.dart';
+ 5: import '../generated/build_info.dart'; // Import der BuildInfo
+ 6: 
+ 7: class AboutScreen extends StatefulWidget {
+ 8:   const AboutScreen({super.key});
+ 9: 
+10:   @override
+11:   State<AboutScreen> createState() => _AboutScreenState();
+12: }
+13: 
+14: class _AboutScreenState extends State<AboutScreen> {
+15:   PackageInfo? _packageInfo;
+16: 
+17:   @override
+18:   void initState() {
+19:     super.initState();
+20:     _loadPackageInfo();
+21:   }
+22: 
+23:   Future<void> _loadPackageInfo() async {
+24:     final info = await PackageInfo.fromPlatform();
+25:     setState(() {
+26:       _packageInfo = info;
+27:     });
+28:   }
+29: 
+30:   Widget _buildSectionTitle(BuildContext context, String title) {
+31:     return Padding(
+32:       padding: const EdgeInsets.only(
+33:         top: 24.0,
+34:         bottom: 8.0,
+35:         left: 16.0,
+36:         right: 16.0,
+37:       ),
+38:       child: Text(
+39:         title,
+40:         style: Theme.of(
+41:           context,
+42:         ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+43:       ),
+44:     );
+45:   }
+46: 
+47:   @override
+48:   Widget build(BuildContext context) {
+49:     return Scaffold(
+50:       appBar: AppBar(
+51:         title: const Text('Über die App'),
+52:         backgroundColor: Colors.blueGrey,
+53:         foregroundColor: Colors.white,
+54:       ),
+55:       body: _packageInfo == null
+56:           ? const Center(child: CircularProgressIndicator())
+57:           : ListView(
+58:               children: [
+59:                 _buildSectionTitle(context, 'Über die App'),
+60:                 Card(
+61:                   margin: const EdgeInsets.symmetric(
+62:                     horizontal: 16.0,
+63:                     vertical: 8.0,
+64:                   ),
+65:                   child: Column(
+66:                     children: [
+67:                       ListTile(
+68:                         leading: const Icon(Icons.info_outline),
+69:                         title: const Text('App-Version'),
+70:                         subtitle: Text(
+71:                           '${_packageInfo!.version}+${_packageInfo!.buildNumber}',
+72:                         ),
+73:                       ),
+74:                       ListTile(
+75:                         leading: const Icon(Icons.build_circle_outlined),
+76:                         title: const Text('Build-Zeitpunkt'),
+77:                         subtitle: const Text(BuildInfo.buildTimestamp),
+78:                       ),
+79:                     ],
+80:                   ),
+81:                 ),
+82:                 // Hier könnten weitere Sektionen oder Informationen folgen
+83:               ],
+84:             ),
+85:     );
+86:   }
+87: }
+88: 
 
 // ==== lib\screens\main_screen.dart ====
 
-// ==== lib\screens\main_screen.dart ====
+  1: // lib\screens\main_screen.dart
+  2: 
+  3: import 'package:flutter/material.dart';
+  4: import '../services/spoonacular_service.dart';
+  5: import '../models/recipe.dart';
+  6: import '../screens/about_screen.dart'; // Import des neuen AboutScreen
+  7: 
+  8: class MainScreen extends StatefulWidget {
+  9:   const MainScreen({super.key});
+ 10: 
+ 11:   @override
+ 12:   State<MainScreen> createState() => _MainScreenState();
+ 13: }
+ 14: 
+ 15: class _MainScreenState extends State<MainScreen> {
+ 16:   final TextEditingController _searchController = TextEditingController();
+ 17:   final SpoonacularService _spoonacularService = SpoonacularService();
+ 18:   List<Recipe> _recipes = [];
+ 19:   bool _isLoading = false;
+ 20:   String? _errorMessage;
+ 21: 
+ 22:   @override
+ 23:   void initState() {
+ 24:     super.initState();
+ 25:   }
+ 26: 
+ 27:   @override
+ 28:   void dispose() {
+ 29:     _searchController.dispose();
+ 30:     super.dispose();
+ 31:   }
+ 32: 
+ 33:   Future<void> _searchRecipes(String query) async {
+ 34:     if (query.trim().isEmpty) {
+ 35:       setState(() {
+ 36:         _recipes = [];
+ 37:         _errorMessage = 'Bitte gib einen Suchbegriff ein.';
+ 38:       });
+ 39:       return;
+ 40:     }
+ 41: 
+ 42:     setState(() {
+ 43:       _isLoading = true;
+ 44:       _errorMessage = null;
+ 45:     });
+ 46: 
+ 47:     try {
+ 48:       final recipes = await _spoonacularService.searchRecipes(query);
+ 49:       setState(() {
+ 50:         _recipes = recipes;
+ 51:         _isLoading = false;
+ 52:       });
+ 53:     } catch (e) {
+ 54:       setState(() {
+ 55:         _errorMessage = e.toString();
+ 56:         _isLoading = false;
+ 57:       });
+ 58:     }
+ 59:   }
+ 60: 
+ 61:   /// Baut die Benutzeroberfläche des MainScreen auf.
+ 62:   @override
+ 63:   Widget build(BuildContext context) {
+ 64:     return Scaffold(
+ 65:       appBar: AppBar(
+ 66:         title: const Text('Rezeptsuche'),
+ 67:         backgroundColor: Colors.blueGrey,
+ 68:         foregroundColor: Colors.white,
+ 69:         actions: [
+ 70:           // Info-Button, der zum AboutScreen navigiert.
+ 71:           IconButton(
+ 72:             icon: const Icon(Icons.info_outline),
+ 73:             onPressed: () {
+ 74:               Navigator.of(context).push(
+ 75:                 MaterialPageRoute(builder: (context) => const AboutScreen()),
+ 76:               );
+ 77:             },
+ 78:             tooltip: 'Über die App',
+ 79:           ),
+ 80:         ],
+ 81:       ),
+ 82:       body: Padding(
+ 83:         padding: const EdgeInsets.all(16.0),
+ 84:         child: Column(
+ 85:           crossAxisAlignment: CrossAxisAlignment.stretch,
+ 86:           children: [
+ 87:             TextField(
+ 88:               controller: _searchController,
+ 89:               decoration: InputDecoration(
+ 90:                 labelText: 'Rezepte suchen (z.B. Pasta, Chicken)',
+ 91:                 suffixIcon: IconButton(
+ 92:                   icon: const Icon(Icons.search),
+ 93:                   onPressed: () => _searchRecipes(_searchController.text),
+ 94:                 ),
+ 95:                 border: const OutlineInputBorder(),
+ 96:               ),
+ 97:               onSubmitted: _searchRecipes,
+ 98:             ),
+ 99:             const SizedBox(height: 16.0),
+100:             _isLoading
+101:                 ? const Center(child: CircularProgressIndicator())
+102:                 : _errorMessage != null
+103:                 ? Center(child: Text(_errorMessage!))
+104:                 : Expanded(
+105:                     child:
+106:                         _recipes.isEmpty &&
+107:                             _searchController
+108:                                 .text
+109:                                 .isNotEmpty // Nur anzeigen, wenn keine Ergebnisse und bereits gesucht wurde
+110:                         ? const Center(child: Text('Keine Rezepte gefunden.'))
+111:                         : ListView.builder(
+112:                             itemCount: _recipes.length,
+113:                             itemBuilder: (context, index) {
+114:                               final recipe = _recipes[index];
+115:                               return Card(
+116:                                 margin: const EdgeInsets.symmetric(
+117:                                   vertical: 8.0,
+118:                                 ),
+119:                                 child: ListTile(
+120:                                   leading: recipe.image != null
+121:                                       ? Image.network(
+122:                                           recipe.image!,
+123:                                           width: 50,
+124:                                           height: 50,
+125:                                           fit: BoxFit.cover,
+126:                                           errorBuilder:
+127:                                               (context, error, stackTrace) =>
+128:                                                   const Icon(
+129:                                                     Icons.broken_image,
+130:                                                   ),
+131:                                         )
+132:                                       : const Icon(Icons.food_bank),
+133:                                   title: Text(recipe.title),
+134:                                   onTap: () {
+135:                                     // TODO: Hier später zum Detail-Screen navigieren
+136:                                     ScaffoldMessenger.of(context).showSnackBar(
+137:                                       SnackBar(
+138:                                         content: Text(
+139:                                           'Rezept "${recipe.title}" ausgewählt (ID: ${recipe.id})',
+140:                                         ),
+141:                                       ),
+142:                                     );
+143:                                   },
+144:                                 ),
+145:                               );
+146:                             },
+147:                           ),
+148:                   ),
+149:           ],
+150:         ),
+151:       ),
+152:     );
+153:   }
+154: }
+155: 
 
-import 'package:flutter/material.dart';
-import 'about_screen.dart'; // Import des neuen AboutScreen
+// ==== lib\screens\recipe_detail_screen.dart ====
 
-class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
+  1: // lib/screens/recipe_detail_screen.dart
+  2: 
+  3: import 'package:flutter/material.dart';
+  4: import 'package:flutter_html/flutter_html.dart'; // Für die HTML-Anzeige der Zusammenfassung
+  5: import '../models/recipe_detail.dart';
+  6: import '../services/spoonacular_service.dart';
+  7: 
+  8: class RecipeDetailScreen extends StatefulWidget {
+  9:   final int recipeId;
+ 10: 
+ 11:   const RecipeDetailScreen({super.key, required this.recipeId});
+ 12: 
+ 13:   @override
+ 14:   State<RecipeDetailScreen> createState() => _RecipeDetailScreenState();
+ 15: }
+ 16: 
+ 17: class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
+ 18:   late Future<RecipeDetail> _recipeDetailFuture;
+ 19: 
+ 20:   @override
+ 21:   void initState() {
+ 22:     super.initState();
+ 23:     _recipeDetailFuture = SpoonacularService().getRecipeDetails(
+ 24:       widget.recipeId,
+ 25:     );
+ 26:   }
+ 27: 
+ 28:   @override
+ 29:   Widget build(BuildContext context) {
+ 30:     return Scaffold(
+ 31:       appBar: AppBar(
+ 32:         title: const Text('Rezeptdetails'),
+ 33:         backgroundColor: Colors.blueGrey,
+ 34:         foregroundColor: Colors.white,
+ 35:       ),
+ 36:       body: FutureBuilder<RecipeDetail>(
+ 37:         future: _recipeDetailFuture,
+ 38:         builder: (context, snapshot) {
+ 39:           if (snapshot.connectionState == ConnectionState.waiting) {
+ 40:             return const Center(child: CircularProgressIndicator());
+ 41:           } else if (snapshot.hasError) {
+ 42:             return Center(child: Text('Fehler: ${snapshot.error}'));
+ 43:           } else if (!snapshot.hasData) {
+ 44:             return const Center(child: Text('Keine Rezeptdetails gefunden.'));
+ 45:           } else {
+ 46:             final recipe = snapshot.data!;
+ 47:             return SingleChildScrollView(
+ 48:               padding: const EdgeInsets.all(16.0),
+ 49:               child: Column(
+ 50:                 crossAxisAlignment: CrossAxisAlignment.start,
+ 51:                 children: [
+ 52:                   Text(
+ 53:                     recipe.title,
+ 54:                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+ 55:                       fontWeight: FontWeight.bold,
+ 56:                     ),
+ 57:                   ),
+ 58:                   const SizedBox(height: 16.0),
+ 59:                   if (recipe.image != null)
+ 60:                     Center(
+ 61:                       child: ClipRRect(
+ 62:                         borderRadius: BorderRadius.circular(8.0),
+ 63:                         child: Image.network(
+ 64:                           recipe.image!,
+ 65:                           height: 200,
+ 66:                           width: double.infinity,
+ 67:                           fit: BoxFit.cover,
+ 68:                           errorBuilder: (context, error, stackTrace) =>
+ 69:                               const Icon(Icons.broken_image, size: 100),
+ 70:                         ),
+ 71:                       ),
+ 72:                     ),
+ 73:                   const SizedBox(height: 16.0),
+ 74:                   Wrap(
+ 75:                     spacing: 8.0,
+ 76:                     children: [
+ 77:                       if (recipe.readyInMinutes != null)
+ 78:                         Chip(
+ 79:                           avatar: const Icon(Icons.timer),
+ 80:                           label: Text('${recipe.readyInMinutes} Min.'),
+ 81:                         ),
+ 82:                       if (recipe.servings != null)
+ 83:                         Chip(
+ 84:                           avatar: const Icon(Icons.people),
+ 85:                           label: Text('${recipe.servings} Portionen'),
+ 86:                         ),
+ 87:                     ],
+ 88:                   ),
+ 89:                   const SizedBox(height: 16.0),
+ 90:                   if (recipe.summary != null && recipe.summary!.isNotEmpty)
+ 91:                     Column(
+ 92:                       crossAxisAlignment: CrossAxisAlignment.start,
+ 93:                       children: [
+ 94:                         Text(
+ 95:                           'Zusammenfassung',
+ 96:                           style: Theme.of(context).textTheme.titleLarge,
+ 97:                         ),
+ 98:                         Html(data: recipe.summary!), // Anzeigen von HTML-Text
+ 99:                         const SizedBox(height: 16.0),
+100:                       ],
+101:                     ),
+102:                   if (recipe.extendedIngredients.isNotEmpty)
+103:                     Column(
+104:                       crossAxisAlignment: CrossAxisAlignment.start,
+105:                       children: [
+106:                         Text(
+107:                           'Zutaten',
+108:                           style: Theme.of(context).textTheme.titleLarge,
+109:                         ),
+110:                         const SizedBox(height: 8.0),
+111:                         ListView.builder(
+112:                           shrinkWrap: true,
+113:                           physics: const NeverScrollableScrollPhysics(),
+114:                           itemCount: recipe.extendedIngredients.length,
+115:                           itemBuilder: (context, index) {
+116:                             final ingredient =
+117:                                 recipe.extendedIngredients[index];
+118:                             return Padding(
+119:                               padding: const EdgeInsets.symmetric(
+120:                                 vertical: 4.0,
+121:                               ),
+122:                               child: Text(
+123:                                 '- ${ingredient.amount} ${ingredient.unit} ${ingredient.name}',
+124:                               ),
+125:                             );
+126:                           },
+127:                         ),
+128:                         const SizedBox(height: 16.0),
+129:                       ],
+130:                     ),
+131:                   if (recipe.analyzedInstructions.isNotEmpty)
+132:                     Column(
+133:                       crossAxisAlignment: CrossAxisAlignment.start,
+134:                       children: [
+135:                         Text(
+136:                           'Zubereitung',
+137:                           style: Theme.of(context).textTheme.titleLarge,
+138:                         ),
+139:                         const SizedBox(height: 8.0),
+140:                         ListView.builder(
+141:                           shrinkWrap: true,
+142:                           physics: const NeverScrollableScrollPhysics(),
+143:                           itemCount:
+144:                               recipe.analyzedInstructions.first.steps.length,
+145:                           itemBuilder: (context, index) {
+146:                             final step =
+147:                                 recipe.analyzedInstructions.first.steps[index];
+148:                             return Padding(
+149:                               padding: const EdgeInsets.symmetric(
+150:                                 vertical: 4.0,
+151:                               ),
+152:                               child: Text('${step.number}. ${step.step}'),
+153:                             );
+154:                           },
+155:                         ),
+156:                         const SizedBox(height: 16.0),
+157:                       ],
+158:                     ),
+159:                   if (recipe.sourceUrl != null && recipe.sourceUrl!.isNotEmpty)
+160:                     Column(
+161:                       crossAxisAlignment: CrossAxisAlignment.start,
+162:                       children: [
+163:                         Text(
+164:                           'Quelle',
+165:                           style: Theme.of(context).textTheme.titleLarge,
+166:                         ),
+167:                         InkWell(
+168:                           onTap: () {
+169:                             // TODO: Implementiere das Öffnen der URL im Browser
+170:                             // import 'package:url_launcher/url_launcher.dart';
+171:                             // launchUrl(Uri.parse(recipe.sourceUrl!));
+172:                           },
+173:                           child: Text(
+174:                             recipe.sourceUrl!,
+175:                             style: const TextStyle(
+176:                               color: Colors.blue,
+177:                               decoration: TextDecoration.underline,
+178:                             ),
+179:                           ),
+180:                         ),
+181:                       ],
+182:                     ),
+183:                 ],
+184:               ),
+185:             );
+186:           }
+187:         },
+188:       ),
+189:     );
+190:   }
+191: }
+192: 
 
-  @override
-  State<MainScreen> createState() => _MainScreenState();
-}
+// ==== lib\services\spoonacular_service.dart ====
 
-class _MainScreenState extends State<MainScreen> {
-  @override
-  void initState() {
-    super.initState();
-  }
-
-  /// Baut die Benutzeroberfläche des MainScreen auf.
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Rezeptsuche'),
-        backgroundColor: Colors.blueGrey,
-        foregroundColor: Colors.white,
-        actions: [
-          // Info-Button, der zum AboutScreen navigiert.
-          IconButton(
-            icon: const Icon(Icons.info_outline),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const AboutScreen()),
-              );
-            },
-            tooltip: 'Über die App',
-          ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [],
-        ),
-      ),
-    );
-  }
-}
-
+ 1: // lib/services/spoonacular_service.dart
+ 2: 
+ 3: import 'dart:convert';
+ 4: import 'package:http/http.dart' as http;
+ 5: import '../models/recipe.dart';
+ 6: import '../models/recipe_detail.dart'; // Importiere das neue Detail-Modell
+ 7: 
+ 8: class SpoonacularService {
+ 9:   static const String _baseUrl = 'https://api.spoonacular.com';
+10:   final String _apiKey =
+11:       '9959e7fc5e464f4ea3e43c2dfd4279a0'; // ERSETZE DIES DURCH DEINEN TATSÄCHLICHEN API-SCHLÜSSEL
+12: 
+13:   Future<List<Recipe>> searchRecipes(String query) async {
+14:     final uri = Uri.parse(
+15:       '$_baseUrl/recipes/complexSearch?query=$query&apiKey=$_apiKey&number=10',
+16:     );
+17: 
+18:     try {
+19:       final response = await http.get(uri);
+20: 
+21:       if (response.statusCode == 200) {
+22:         final Map<String, dynamic> data = json.decode(response.body);
+23:         final List<dynamic> results = data['results'];
+24:         return results.map((json) => Recipe.fromJson(json)).toList();
+25:       } else {
+26:         throw Exception(
+27:           'Fehler beim Laden der Rezepte: ${response.statusCode}',
+28:         );
+29:       }
+30:     } catch (e) {
+31:       throw Exception('Netzwerkfehler: $e');
+32:     }
+33:   }
+34: 
+35:   // NEUE METHODE: Rezeptdetails abrufen
+36:   Future<RecipeDetail> getRecipeDetails(int id) async {
+37:     final uri = Uri.parse(
+38:       '$_baseUrl/recipes/$id/information?apiKey=$_apiKey&includeNutrition=false', // includeNutrition ist optional
+39:     );
+40: 
+41:     try {
+42:       final response = await http.get(uri);
+43: 
+44:       if (response.statusCode == 200) {
+45:         final Map<String, dynamic> data = json.decode(response.body);
+46:         return RecipeDetail.fromJson(data);
+47:       } else {
+48:         throw Exception(
+49:           'Fehler beim Laden der Rezeptdetails: ${response.statusCode}',
+50:         );
+51:       }
+52:     } catch (e) {
+53:       throw Exception('Netzwerkfehler beim Abrufen der Details: $e');
+54:     }
+55:   }
+56: }
+57: 
 
 // ==== lib\widgets\custom_marker_icon.dart ====
 
-// lib/widgets/custom_marker_icon.dart
-
-import 'package:flutter/material.dart';
-
-/// Ein benutzerdefiniertes Widget, das als Marker-Icon auf der Karte dient.
-class CustomMarkerIcon extends StatelessWidget {
-  const CustomMarkerIcon({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    //return const Icon(Icons.location_on, color: Colors.red, size: 40.0);
-    return const Icon(Icons.push_pin, color: Colors.red, size: 40.0);
-  }
-}
-
+ 1: // lib/widgets/custom_marker_icon.dart
+ 2: 
+ 3: import 'package:flutter/material.dart';
+ 4: 
+ 5: /// Ein benutzerdefiniertes Widget, das als Marker-Icon auf der Karte dient.
+ 6: class CustomMarkerIcon extends StatelessWidget {
+ 7:   const CustomMarkerIcon({super.key});
+ 8: 
+ 9:   @override
+10:   Widget build(BuildContext context) {
+11:     //return const Icon(Icons.location_on, color: Colors.red, size: 40.0);
+12:     return const Icon(Icons.push_pin, color: Colors.red, size: 40.0);
+13:   }
+14: }
+15: 
 
 // ==== lib\main.dart ====
 
-// lib/main.dart
-
-import 'package:flutter/material.dart';
-import 'screens/main_screen.dart';
-
-void main() {
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'uRezepte2',
-      home: const MainScreen(),
-    );
-  }
-}
-
+ 1: // lib/main.dart
+ 2: 
+ 3: import 'package:flutter/material.dart';
+ 4: import 'package:urezepte2/screens/main_screen.dart'; // Korrekter Import für MainScreen
+ 5: 
+ 6: void main() {
+ 7:   runApp(const MyApp());
+ 8: }
+ 9: 
+10: class MyApp extends StatelessWidget {
+11:   const MyApp({super.key});
+12: 
+13:   @override
+14:   Widget build(BuildContext context) {
+15:     return MaterialApp(
+16:       title: 'uRezepte2', // Du kannst hier den Namen deiner App anpassen
+17:       theme: ThemeData(
+18:         primarySwatch: Colors.blueGrey, // Passend zu deiner App-Bar Farbe
+19:         appBarTheme: const AppBarTheme(
+20:           backgroundColor: Colors.blueGrey,
+21:           foregroundColor: Colors.white,
+22:         ),
+23:         useMaterial3: true,
+24:       ),
+25:       home: const MainScreen(), // Der MainScreen ist der Startbildschirm
+26:       debugShowCheckedModeBanner: false, // Optional: Entfernt das Debug-Banner
+27:     );
+28:   }
+29: }
+30: 

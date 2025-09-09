@@ -3,7 +3,8 @@
 import 'package:flutter/material.dart';
 import '../services/spoonacular_service.dart';
 import '../models/recipe.dart';
-import 'about_screen.dart'; // Import des neuen AboutScreen
+import '../screens/about_screen.dart'; // Import des AboutScreen
+import 'recipe_detail_screen.dart'; // NEU: Import des Detail-Screens
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -49,10 +50,15 @@ class _MainScreenState extends State<MainScreen> {
       setState(() {
         _recipes = recipes;
         _isLoading = false;
+        if (_recipes.isEmpty) {
+          _errorMessage = 'Keine Rezepte für "${query}" gefunden.';
+        }
       });
     } catch (e) {
       setState(() {
-        _errorMessage = e.toString();
+        _errorMessage = e.toString().contains("Exception: Netzwerkfehler")
+            ? "Keine Internetverbindung oder API-Fehler."
+            : e.toString();
         _isLoading = false;
       });
     }
@@ -132,12 +138,13 @@ class _MainScreenState extends State<MainScreen> {
                                       : const Icon(Icons.food_bank),
                                   title: Text(recipe.title),
                                   onTap: () {
-                                    // TODO: Hier später zum Detail-Screen navigieren
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'Rezept "${recipe.title}" ausgewählt (ID: ${recipe.id})',
-                                        ),
+                                    // HIER IST DIE KORREKTUR: Navigation zum RecipeDetailScreen
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            RecipeDetailScreen(
+                                              recipeId: recipe.id,
+                                            ),
                                       ),
                                     );
                                   },
